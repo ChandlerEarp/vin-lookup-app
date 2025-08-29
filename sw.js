@@ -1,4 +1,4 @@
-const CACHE_NAME = 'AVN-Cache-V6-RESULTS-FIX'; // bump when you replace data.csv or code
+const CACHE_NAME = 'AVN-Cache-V10-FORCE-REFRESH'; // bump when you replace data.csv or code
 const ASSETS = [
   './',
   './index.html',

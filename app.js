@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v5-results-fix"; // bump when you replace data.csv
+const BUILD_VERSION = "v10-FORCE-UPDATE"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // ===== Helpers =====
