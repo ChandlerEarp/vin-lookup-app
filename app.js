@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v4-enter-button"; // bump when you replace data.csv
+const BUILD_VERSION = "v5-results-fix"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // ===== Helpers =====
@@ -155,8 +155,13 @@ JALE5W160N7303550,820077`;
 // ===== Type Mode =====
 function showResults(k){
   console.log('showResults called with:', k);
-  const box = $('#results'); 
+  console.log('Current mode - typeMode visible?', !document.getElementById('typeMode')?.classList.contains('hide'));
+  const box = $('results'); 
   console.log('results box element:', box);
+  if (!box) {
+    console.error('Results element #results not found!');
+    return;
+  }
   box.innerHTML = '';
   if(!k) {
     console.log('No key provided, returning');
