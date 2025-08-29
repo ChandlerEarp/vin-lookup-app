@@ -1,4 +1,4 @@
-const CACHE_NAME = 'AVN-Cache-V4-ENTER-BTN'; // bump when you replace data.csv or code
+const CACHE_NAME = 'AVN-Cache-V5-FIXED'; // bump when you replace data.csv or code
 const ASSETS = [
   './',
   './index.html',
