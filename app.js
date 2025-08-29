@@ -154,9 +154,16 @@ JALE5W160N7303550,820077`;
 
 // ===== Type Mode =====
 function showResults(k){
-  const box = $('#results'); box.innerHTML = '';
-  if(!k) return;
+  console.log('showResults called with:', k);
+  const box = $('#results'); 
+  console.log('results box element:', box);
+  box.innerHTML = '';
+  if(!k) {
+    console.log('No key provided, returning');
+    return;
+  }
   const list = IDX.get(k) || [];
+  console.log('Found', list.length, 'results for key:', k);
   if(list.length === 0){
     const div = document.createElement('div');
     div.className='result';
@@ -207,12 +214,28 @@ function buildPad(){
   const enter=document.createElement('button'); enter.textContent='ENTER';
   enter.style.backgroundColor='#007AFF'; enter.style.color='white';
   enter.onclick=()=>{ 
+    console.log('ENTER button clicked');
     const q=document.getElementById('q'); 
-    if(q && q.value) { inputChanged(); }
+    if(q && q.value) { 
+      console.log('Input found, value:', q.value);
+      inputChanged(); 
+    } else {
+      console.log('Input not found or empty, q:', q, 'value:', q ? q.value : 'N/A');
+    }
   }; 
   kbd.appendChild(enter);
 }
-function inputChanged(){ const v = clean($('#q').value).slice(0,8); $('#q').value=v; showResults(v); }
+function inputChanged(){ 
+  const q = document.getElementById('q');
+  if (!q) {
+    console.error('Input element #q not found!');
+    return;
+  }
+  const v = clean(q.value).slice(0,8); 
+  q.value = v; 
+  console.log('inputChanged called with:', v, 'IDX has key:', IDX.has(v), 'IDX size:', IDX.size);
+  showResults(v); 
+}
 
 // ===== Scan Mode =====
 let stream;
