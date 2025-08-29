@@ -1,6 +1,38 @@
 // ===== Config =====
-const BUILD_VERSION = "v10-FORCE-UPDATE"; // bump when you replace data.csv
+const BUILD_VERSION = "v11-AUTO-UPDATE"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
+
+// Auto-update mechanism
+function checkForUpdates() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(registration => {
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            console.log('[App] New version available! Auto-refreshing...');
+            // Show a brief message then refresh
+            const statusEl = document.getElementById('loadStatus');
+            if (statusEl) {
+              statusEl.textContent = 'New version detected - updating...';
+              statusEl.style.color = '#007AFF';
+            }
+            setTimeout(() => window.location.reload(), 1000);
+          }
+        });
+      });
+    });
+  }
+}
+
+// Check for updates every 30 seconds when app is active
+setInterval(() => {
+  if (document.visibilityState === 'visible' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if (reg) reg.update();
+    });
+  }
+}, 30000);
 
 // ===== Helpers =====
 const $ = id => document.getElementById(id);
@@ -374,6 +406,9 @@ function initApp() {
   
   // Load the CSV data
   loadBundledCSV();
+  
+  // Set up auto-update mechanism
+  checkForUpdates();
 }
 
 // Simple DOM ready check
