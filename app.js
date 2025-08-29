@@ -204,6 +204,13 @@ function buildPad(){
     if(q) { q.value=''; inputChanged(); }
   }; 
   kbd.appendChild(clr);
+  const enter=document.createElement('button'); enter.textContent='ENTER';
+  enter.style.backgroundColor='#007AFF'; enter.style.color='white';
+  enter.onclick=()=>{ 
+    const q=document.getElementById('q'); 
+    if(q && q.value) { inputChanged(); }
+  }; 
+  kbd.appendChild(enter);
 }
 function inputChanged(){ const v = clean($('#q').value).slice(0,8); $('#q').value=v; showResults(v); }
 
