@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v3"; // bump when you replace data.csv
+const BUILD_VERSION = "v4-enter-button"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // ===== Helpers =====
