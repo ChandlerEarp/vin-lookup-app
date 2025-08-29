@@ -204,7 +204,7 @@ function showResults(k){
   if(list.length === 0){
     const div = document.createElement('div');
     div.className='result';
-    div.innerHTML = `<div><div class="sub">Results for <b>${k}</b></div><div>No match. Check digits. If still no match, follow SOP card C-2.</div></div>`;
+    div.innerHTML = `<div><div class="sub">Results for <b>${k}</b></div><div>No match, do not install.</div></div>`;
     box.appendChild(div); return;
   }
   const head = document.createElement('div'); head.className='sub';
