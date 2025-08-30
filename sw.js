@@ -1,4 +1,4 @@
-const CACHE_NAME = 'AVN-Cache-V11-AUTO-UPDATE'; // bump when you replace data.csv or code
+const CACHE_NAME = 'AVN-Cache-V12-NATIVE-KEYBOARD'; // bump when you replace data.csv or code
 const ASSETS = [
   './',
   './index.html',

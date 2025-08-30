@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v11-AUTO-UPDATE"; // bump when you replace data.csv
+const BUILD_VERSION = "v12-NATIVE-KEYBOARD"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Auto-update mechanism
@@ -218,49 +218,34 @@ function showResults(k){
     row.appendChild(btn); box.appendChild(row);
   });
 }
-function buildPad(){
+function buildSearchButton(){
   const kbd = document.getElementById('kbd'); 
   if (!kbd) {
-    console.log('kbd element not found in buildPad');
+    console.log('kbd element not found in buildSearchButton');
     return;
   }
   kbd.innerHTML='';
-  '1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(ch=>{
-    const b=document.createElement('button'); b.textContent=ch;
-    b.onclick=()=>{ 
-      const q=document.getElementById('q'); 
-      if(q && q.value.length<8){ 
-        q.value=(q.value+ch).toUpperCase(); 
-        inputChanged(); 
-      } 
-    };
-    kbd.appendChild(b);
-  });
-  const back=document.createElement('button'); back.textContent='⌫';
-  back.onclick=()=>{ 
-    const q=document.getElementById('q'); 
-    if(q) { q.value=q.value.slice(0,-1); inputChanged(); }
-  }; 
-  kbd.appendChild(back);
-  const clr=document.createElement('button'); clr.textContent='CLR';
-  clr.onclick=()=>{ 
-    const q=document.getElementById('q'); 
-    if(q) { q.value=''; inputChanged(); }
-  }; 
-  kbd.appendChild(clr);
-  const enter=document.createElement('button'); enter.textContent='ENTER';
-  enter.style.backgroundColor='#007AFF'; enter.style.color='white';
-  enter.onclick=()=>{ 
-    console.log('ENTER button clicked');
-    const q=document.getElementById('q'); 
-    if(q && q.value) { 
+  
+  // Just add a search/enter button
+  const searchBtn = document.createElement('button');
+  searchBtn.textContent = '🔍 Search';
+  searchBtn.className = 'primary';
+  searchBtn.style.width = '100%';
+  searchBtn.style.padding = '16px';
+  searchBtn.style.fontSize = '18px';
+  searchBtn.style.fontWeight = '700';
+  searchBtn.onclick = () => { 
+    console.log('Search button clicked');
+    const q = document.getElementById('q'); 
+    if (q && q.value.trim()) { 
       console.log('Input found, value:', q.value);
       inputChanged(); 
     } else {
-      console.log('Input not found or empty, q:', q, 'value:', q ? q.value : 'N/A');
+      console.log('Input empty, focusing input field');
+      if (q) q.focus();
     }
   }; 
-  kbd.appendChild(enter);
+  kbd.appendChild(searchBtn);
 }
 function inputChanged(){ 
   const q = document.getElementById('q');
@@ -388,16 +373,24 @@ function initApp() {
     });
   }
 
-  // Build the keyboard if element exists
+  // Build the search button if element exists
   if (document.getElementById('kbd')) {
-    buildPad();
+    buildSearchButton();
   }
   
   // Setup the input field to trigger searches as you type
   const qInput = document.getElementById('q');
   if (qInput) {
     qInput.addEventListener('input', inputChanged);
-    qInput.addEventListener('keyup', inputChanged);
+    qInput.addEventListener('keyup', (e) => {
+      // Trigger search on Enter key
+      if (e.key === 'Enter') {
+        console.log('Enter key pressed');
+        inputChanged();
+      } else {
+        inputChanged();
+      }
+    });
     qInput.addEventListener('paste', () => {
       // Small delay to let paste complete
       setTimeout(inputChanged, 10);
