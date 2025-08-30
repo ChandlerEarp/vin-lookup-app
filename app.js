@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v13-NO-CAMERA"; // bump when you replace data.csv
+const BUILD_VERSION = "v14-NEW-DATA-DS-DSP"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Auto-update mechanism
@@ -69,20 +69,28 @@ function detectCols(headers){
   const low = headers.map(h => h.toLowerCase());
   let vin  = headers[ low.findIndex(h => /(^|\b)vin(\b|$)/.test(h)) ];
   let unit = headers[ low.findIndex(h => /(unit|asset|vehicle[_\s-]?number)/.test(h)) ];
+  let ds   = headers[ low.findIndex(h => /(^|\b)ds(\b|$)/.test(h)) ];
+  let dsp  = headers[ low.findIndex(h => /(^|\b)dsp(\b|$)/.test(h)) ];
+  
   if(!vin)  vin  = headers[0];
   if(!unit) unit = headers[1] || headers[0];
-  return { vin, unit };
+  if(!ds)   ds   = headers[2];
+  if(!dsp)  dsp  = headers[3];
+  
+  return { vin, unit, ds, dsp };
 }
 
-function buildIndex(objs, vinKey, unitKey){
+function buildIndex(objs, vinKey, unitKey, dsKey, dspKey){
   IDX = new Map(); COUNT = 0;
   for(const o of objs){
     const vinRaw = (o[vinKey]||"").toString();
     const unit   = (o[unitKey]||"").toString().trim();
+    const ds     = (o[dsKey]||"").toString().trim();
+    const dsp    = (o[dspKey]||"").toString().trim();
     const v = clean(vinRaw);
     if(v.length < 8) continue;
     const k = v.slice(-8);
-    const rec = { vin: v, unit };
+    const rec = { vin: v, unit, ds, dsp };
     if(!IDX.has(k)) IDX.set(k, []);
     IDX.get(k).push(rec);
     COUNT++;
@@ -102,7 +110,7 @@ async function loadBundledCSV(){
       const { headers, rows } = parseCSV(cached);
       const cols = detectCols(headers);
       const objs = rows.map(r => Object.fromEntries(headers.map((h,i)=>[h, r[i]||""])));
-      buildIndex(objs, cols.vin, cols.unit);
+      buildIndex(objs, cols.vin, cols.unit, cols.ds, cols.dsp);
       const verEl = document.getElementById('ver');
       const statusEl = document.getElementById('loadStatus');
       if (verEl) verEl.textContent = localStorage.getItem('vin_unit_version') || BUILD_VERSION;
@@ -111,21 +119,21 @@ async function loadBundledCSV(){
     } else {
       // Load embedded fallback data for offline use
       console.log('No cached data, loading embedded fallback data');
-      const embeddedCSV = `VIN,Unit
-1FDDF6P84MKA55412,503006
-JHHRDM2H1LK008183,700030
-JHHRDM2H3LK008962,700093
-JHHRDM2H4LK008162,700116
-JHHRDM2H4LK008954,700121
-JHHRDM2H6LK008972,700171
-JHHRDM2H7LK008964,700196
-1FDDF6P86MKA45383,503143
-JALE5W160N7303550,820077`;
+      const embeddedCSV = `VIN,Unit,DS,DSP
+1FDDF6P84MKA55412,503006,TEST1,DEMO1
+JHHRDM2H1LK008183,700030,TEST2,DEMO2
+JHHRDM2H3LK008962,700093,TEST3,DEMO3
+JHHRDM2H4LK008162,700116,TEST4,DEMO4
+JHHRDM2H4LK008954,700121,TEST5,DEMO5
+JHHRDM2H6LK008972,700171,TEST6,DEMO6
+JHHRDM2H7LK008964,700196,TEST7,DEMO7
+1FDDF6P86MKA45383,503143,TEST8,DEMO8
+JALE5W160N7303550,820077,TEST9,DEMO9`;
       
       const { headers, rows } = parseCSV(embeddedCSV);
       const cols = detectCols(headers);
       const objs = rows.map(r => Object.fromEntries(headers.map((h,i)=>[h, r[i]||""])));
-      buildIndex(objs, cols.vin, cols.unit);
+      buildIndex(objs, cols.vin, cols.unit, cols.ds, cols.dsp);
       const verEl = document.getElementById('ver');
       const statusEl = document.getElementById('loadStatus');
       if (verEl) verEl.textContent = 'Demo Data';
@@ -155,7 +163,7 @@ JALE5W160N7303550,820077`;
     console.log('Detected columns:', cols);
     const objs = rows.map(r => Object.fromEntries(headers.map((h,i)=>[h, r[i]||""])));
     console.log('Building index...');
-    buildIndex(objs, cols.vin, cols.unit);
+    buildIndex(objs, cols.vin, cols.unit, cols.ds, cols.dsp);
     console.log('Index built, COUNT:', COUNT, 'IDX size:', IDX.size);
 
     const verEl = document.getElementById('ver');
@@ -170,7 +178,7 @@ JALE5W160N7303550,820077`;
       const { headers, rows } = parseCSV(cached);
       const cols = detectCols(headers);
       const objs = rows.map(r => Object.fromEntries(headers.map((h,i)=>[h, r[i]||""])));
-      buildIndex(objs, cols.vin, cols.unit);
+      buildIndex(objs, cols.vin, cols.unit, cols.ds, cols.dsp);
       const verEl = document.getElementById('ver');
       const statusEl = document.getElementById('loadStatus');
       if (verEl) verEl.textContent = localStorage.getItem('vin_unit_version') || BUILD_VERSION;
@@ -211,8 +219,11 @@ function showResults(k){
   head.textContent = `${list.length} match${list.length>1?'es':''} for ${k}`; box.appendChild(head);
   list.forEach(r=>{
     const row = document.createElement('div'); row.className='result';
-    row.innerHTML = `<div><div class="sub" style="margin:0 0 2px 0">VIN: <span style="font-family:ui-monospace">${r.vin}</span></div>
-                     <div class="big">Unit: ${r.unit||'(blank)'} </div></div>`;
+    row.innerHTML = `<div>
+      <div class="sub" style="margin:0 0 2px 0">VIN: <span style="font-family:ui-monospace">${r.vin}</span></div>
+      <div class="big">Unit: ${r.unit||'(blank)'}</div>
+      <div class="sub" style="margin:2px 0 0 0">DS: <b>${r.ds||'(blank)'}</b> | DSP: <b>${r.dsp||'(blank)'}</b></div>
+    </div>`;
     const btn = document.createElement('button'); btn.textContent='Copy Unit';
     btn.onclick=()=>navigator.clipboard.writeText(r.unit||'');
     row.appendChild(btn); box.appendChild(row);

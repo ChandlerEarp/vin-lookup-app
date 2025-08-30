@@ -1,4 +1,4 @@
-const CACHE_NAME = 'AVN-Cache-V13-NO-CAMERA'; // bump when you replace data.csv or code
+const CACHE_NAME = 'AVN-Cache-V14-NEW-DATA-DS-DSP'; // bump when you replace data.csv or code
 const ASSETS = [
   './',
   './index.html',
