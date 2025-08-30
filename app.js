@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v12-NATIVE-KEYBOARD"; // bump when you replace data.csv
+const BUILD_VERSION = "v13-NO-CAMERA"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Auto-update mechanism
@@ -259,7 +259,8 @@ function inputChanged(){
   showResults(v); 
 }
 
-// ===== Scan Mode =====
+// ===== Scan Mode (Disabled) =====
+/*
 let stream;
 async function initScan(){
   const status = $('#scanStatus');
@@ -305,6 +306,7 @@ function renderScanResults(k, scanned){
   });
 }
 function stopScan(){ try{ const v=$('#video'); v.pause(); if(stream){ stream.getTracks().forEach(t=>t.stop()); } }catch{} $('#scanResults').innerHTML=''; $('#scanStatus').textContent=''; }
+*/
 
 // ===== QR screen =====
 function showQR(){
@@ -320,8 +322,6 @@ function initApp() {
   // Simple direct assignment approach
   const goType = document.getElementById('goType');
   const backHome1 = document.getElementById('backHome1');
-  const goScan = document.getElementById('goScan');
-  const backHome2 = document.getElementById('backHome2');
   const goQR = document.getElementById('goQR');
   const backHome3 = document.getElementById('backHome3');
 
@@ -338,22 +338,6 @@ function initApp() {
   if (backHome1) {
     backHome1.addEventListener('click', () => {
       document.getElementById('typeMode').classList.add('hide');
-      document.getElementById('home').classList.remove('hide');
-    });
-  }
-  
-  if (goScan) {
-    goScan.addEventListener('click', () => {
-      document.getElementById('home').classList.add('hide');
-      document.getElementById('scanMode').classList.remove('hide');
-      initScan();
-    });
-  }
-  
-  if (backHome2) {
-    backHome2.addEventListener('click', () => {
-      stopScan();
-      document.getElementById('scanMode').classList.add('hide');
       document.getElementById('home').classList.remove('hide');
     });
   }
