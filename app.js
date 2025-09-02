@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v14-NEW-DATA-DS-DSP"; // bump when you replace data.csv
+const BUILD_VERSION = "v15-LOGO-COLORS-NO-QR"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Auto-update mechanism
@@ -319,12 +319,14 @@ function renderScanResults(k, scanned){
 function stopScan(){ try{ const v=$('#video'); v.pause(); if(stream){ stream.getTracks().forEach(t=>t.stop()); } }catch{} $('#scanResults').innerHTML=''; $('#scanStatus').textContent=''; }
 */
 
-// ===== QR screen =====
+// ===== QR screen (Disabled) =====
+/*
 function showQR(){
   const url = location.href.split('#')[0];
   $('#qrUrl').textContent = url;
   QRCode.toCanvas($('#qrCanvas'), url);
 }
+*/
 
 // ===== Nav & Boot =====
 function initApp() {
@@ -333,8 +335,6 @@ function initApp() {
   // Simple direct assignment approach
   const goType = document.getElementById('goType');
   const backHome1 = document.getElementById('backHome1');
-  const goQR = document.getElementById('goQR');
-  const backHome3 = document.getElementById('backHome3');
 
   console.log('goType element:', goType);
   console.log('home element:', document.getElementById('home'));
@@ -349,21 +349,6 @@ function initApp() {
   if (backHome1) {
     backHome1.addEventListener('click', () => {
       document.getElementById('typeMode').classList.add('hide');
-      document.getElementById('home').classList.remove('hide');
-    });
-  }
-  
-  if (goQR) {
-    goQR.addEventListener('click', () => {
-      document.getElementById('home').classList.add('hide');
-      document.getElementById('qrMode').classList.remove('hide');
-      showQR();
-    });
-  }
-  
-  if (backHome3) {
-    backHome3.addEventListener('click', () => {
-      document.getElementById('qrMode').classList.add('hide');
       document.getElementById('home').classList.remove('hide');
     });
   }
