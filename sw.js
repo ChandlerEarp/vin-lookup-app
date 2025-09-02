@@ -1,4 +1,4 @@
-const CACHE_NAME = 'AVN-Cache-V15-LOGO-COLORS-NO-QR'; // bump when you replace data.csv or code
+const CACHE_NAME = 'AVN-Cache-V16-CORRECT-LOGO-COLOR'; // bump when you replace data.csv or code
 const ASSETS = [
   './',
   './index.html',
