@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>VIN Last-8 → Unit</title>
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#303e4a" />
   <link rel="manifest" href="manifest.webmanifest" />
   <style>
     :root { --ink:#0f172a; --bg:#f8fafc; --card:#303e4a; --card-text:#ffffff; --muted:#94a3b8; --ring:#0f172a33; }
@@ -61,30 +61,8 @@
       <div class="kbd" id="kbd"></div>
       <div class="results" id="results"></div>
     </div>
-
-    <!-- Scan Mode -->
-    <div class="card hide" id="scanMode" style="margin-top:12px;">
-      <div class="row" style="justify-content:space-between;">
-        <div class="sub">Scan a VIN barcode</div>
-        <button id="backHome2">⬅ Home</button>
-      </div>
-      <video id="video" playsinline autoplay></video>
-      <div class="status" id="scanStatus">Initializing camera…</div>
-      <div class="results" id="scanResults"></div>
-    </div>
-
-    <!-- QR Screen -->
-    <div class="card hide" id="qrMode" style="margin-top:12px; text-align:center;">
-      <div class="row" style="justify-content:space-between;">
-        <div class="sub">Share/print this QR to open/install the app</div>
-        <button id="backHome3">⬅ Home</button>
-      </div>
-      <canvas id="qrCanvas" width="256" height="256" style="margin:10px auto; display:block; background:#fff; border-radius:12px;"></canvas>
-      <div class="status">URL: <span id="qrUrl"></span></div>
-    </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

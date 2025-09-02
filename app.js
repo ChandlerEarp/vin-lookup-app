@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v16-CORRECT-LOGO-COLOR"; // bump when you replace data.csv
+const BUILD_VERSION = "v17-FORCE-COLOR-REFRESH"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Auto-update mechanism
