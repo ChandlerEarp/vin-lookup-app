@@ -1,4 +1,4 @@
-const CACHE_NAME = 'VIN-APP-V24-MULTI-OCR-ENHANCED'; // bump when you replace data.csv or code
+const CACHE_NAME = 'VIN-APP-V25-SIMPLIFIED-OCR-WITH-FALLBACK'; // bump when you replace data.csv or code
 const ASSETS = [
   './',
   './index.html',
