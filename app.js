@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v19-MOBILE-CAMERA-OCR"; // bump when you replace data.csv
+const BUILD_VERSION = "v20-MOBILE-CAMERA-OCR"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Mobile detection
