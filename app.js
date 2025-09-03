@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v22-MOBILE-CAMERA-OCR-IMPROVED"; // bump when you replace data.csv
+const BUILD_VERSION = "v23-OCR-ENHANCED"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Mobile detection
@@ -285,12 +285,15 @@ async function initOCR() {
     console.log('Initializing Tesseract OCR worker...');
     ocrWorker = await Tesseract.createWorker('eng');
     await ocrWorker.setParameters({
-      tessedit_char_whitelist: 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789', // VIN characters only
-      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD, // Better for VIN scanning
-      tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY, // Use LSTM engine
-      preserve_interword_spaces: '0', // Don't preserve spaces
+      tessedit_char_whitelist: 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789', // Keep your VIN charset
+      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK, // Better for text blocks
+      tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY,
+      preserve_interword_spaces: '0',
+      // Add these parameters for better accuracy
+      tessedit_do_invert: '0',
+      classify_bln_numeric_mode: '0'
     });
-    console.log('OCR worker initialized with VIN-optimized settings');
+    console.log('OCR worker initialized with improved settings');
   }
   return ocrWorker;
 }
@@ -371,82 +374,80 @@ async function captureAndProcessVIN() {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0);
     
-    // Apply image preprocessing for better OCR
+    // Better image preprocessing
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     
-    // Convert to grayscale and increase contrast
+    // Improved preprocessing: less aggressive contrast, better threshold
     for (let i = 0; i < data.length; i += 4) {
-      // Convert to grayscale
       const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
       
-      // Increase contrast (make dark darker, light lighter)
-      const contrast = (gray - 128) * 2 + 128;
-      const enhanced = Math.max(0, Math.min(255, contrast));
+      // Apply threshold instead of contrast adjustment
+      const threshold = gray > 127 ? 255 : 0;
       
-      data[i] = enhanced;     // red
-      data[i + 1] = enhanced; // green
-      data[i + 2] = enhanced; // blue
-      // alpha stays the same
+      data[i] = threshold;
+      data[i + 1] = threshold; 
+      data[i + 2] = threshold;
     }
     
-    // Put processed image back
     ctx.putImageData(imageData, 0, 0);
     
-    // Convert canvas to image data for OCR
-    const processedImageData = canvas.toDataURL('image/png');
+    // Scale up the image for better OCR accuracy
+    const scaledCanvas = document.createElement('canvas');
+    const scaledCtx = scaledCanvas.getContext('2d');
+    scaledCanvas.width = canvas.width * 2;
+    scaledCanvas.height = canvas.height * 2;
+    
+    scaledCtx.imageSmoothingEnabled = false;
+    scaledCtx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+    
+    const processedImageData = scaledCanvas.toDataURL('image/png');
     
     // Initialize OCR worker if needed
     await initOCR();
     
-    status.textContent = 'Reading text with OCR...';
+    status.textContent = 'Reading text with enhanced OCR...';
     
-    // Process with Tesseract using multiple recognition attempts
     console.log('Starting OCR recognition...');
     const { data: { text, confidence } } = await ocrWorker.recognize(processedImageData);
-    console.log('Raw OCR result:', text, 'confidence:', confidence);
     
-    // Show what was actually read
     const rawText = text.trim();
-    status.textContent = `📖 Read: "${rawText}" (${Math.round(confidence)}% confidence)`;
+    console.log('Raw OCR result:', rawText, 'confidence:', confidence);
     
-    // Extract VIN from OCR text
-    const vinText = text.replace(/\s+/g, '').toUpperCase();
-    console.log('Cleaned OCR text:', vinText);
+    // Better text extraction
+    const cleanedText = rawText.replace(/\s+/g, '').toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
+    console.log('Cleaned text:', cleanedText);
     
-    // Look for 17-character VIN pattern
-    const vinMatch = vinText.match(/[A-HJ-NPR-Z0-9]{17}/);
-    let foundVin = null;
+    status.textContent = `📖 Read: "${rawText}" → Cleaned: "${cleanedText}" (${Math.round(confidence)}% confidence)`;
+    
+    // Try multiple approaches to extract VIN
     let last8 = '';
+    let searchTerm = '';
     let longest = '';
     
-    if (vinMatch) {
-      foundVin = vinMatch[0];
-      last8 = foundVin.slice(-8);
-      status.textContent = `📖 Read: "${rawText}" ➜ Found VIN: ${foundVin}`;
-    } else {
-      // If no 17-char VIN found, try to extract any alphanumeric sequence that might be the last 8
-      const sequences = vinText.match(/[A-HJ-NPR-Z0-9]{6,}/g) || [];
-      console.log('Found sequences:', sequences);
-      
-      if (sequences.length > 0) {
-        // Take the longest sequence and use its last 8 characters
-        longest = sequences.reduce((a, b) => a.length > b.length ? a : b);
-        last8 = longest.slice(-8);
-        status.textContent = `📖 Read: "${rawText}" ➜ Using: ${longest} (last 8: ${last8})`;
-      } else {
-        status.textContent = `📖 Read: "${rawText}" ➜ ❌ No valid VIN text found. Try repositioning camera for better clarity.`;
-        captureBtn.disabled = false;
-        captureBtn.textContent = '📸 Capture VIN';
-        return;
+    if (cleanedText.length >= 17) {
+      // Full VIN found
+      const vinMatch = cleanedText.match(/[A-HJ-NPR-Z0-9]{17}/);
+      if (vinMatch) {
+        searchTerm = vinMatch[0];
+        last8 = searchTerm.slice(-8);
+        status.textContent = `📖 Found full VIN: ${searchTerm} → Last 8: ${last8}`;
       }
+    } 
+    
+    if (!last8 && cleanedText.length >= 8) {
+      // Try to use last 8 characters of cleaned text
+      last8 = cleanedText.slice(-8);
+      searchTerm = cleanedText;
+      status.textContent = `📖 Using last 8 from: "${cleanedText}" → ${last8}`;
     }
     
-    if (last8.length >= 8) {
-      renderScanResults(last8, foundVin || vinText, rawText);
-    } else {
-      status.textContent = `📖 Read: "${rawText}" ➜ ❌ Could not extract valid VIN sequence.`;
+    if (!last8) {
+      status.textContent = `📖 Read: "${rawText}" → ❌ Not enough characters found. Try getting closer to the VIN.`;
+      return;
     }
+    
+    renderScanResults(last8, searchTerm, rawText);
     
   } catch (error) {
     console.error('OCR processing error:', error);
