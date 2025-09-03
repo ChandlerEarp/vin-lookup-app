@@ -1,6 +1,12 @@
 // ===== Config =====
-const BUILD_VERSION = "v17-FORCE-COLOR-REFRESH"; // bump when you replace data.csv
+const BUILD_VERSION = "v19-MOBILE-CAMERA-OCR"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
+
+// Mobile detection
+function isMobileDevice() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+         (navigator.maxTouchPoints > 0 && window.innerWidth < 768);
+}
 
 // Auto-update mechanism
 function checkForUpdates() {
@@ -270,54 +276,199 @@ function inputChanged(){
   showResults(v); 
 }
 
-// ===== Scan Mode (Disabled) =====
-/*
+// ===== OCR Scan Mode =====
 let stream;
-async function initScan(){
-  const status = $('#scanStatus');
-  if(!('BarcodeDetector' in window)){
-    status.textContent = 'Barcode scanning not supported on this device. Use Type mode.'; return;
+let ocrWorker;
+
+async function initOCR() {
+  if (!ocrWorker) {
+    console.log('Initializing Tesseract OCR worker...');
+    ocrWorker = await Tesseract.createWorker('eng');
+    await ocrWorker.setParameters({
+      tessedit_char_whitelist: 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789', // VIN characters only
+      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE, // Treat as single text line
+    });
+    console.log('OCR worker initialized');
   }
-  const detector = new BarcodeDetector({
-    formats: ['code_39','code_128','ean_13','ean_8','upc_a','upc_e','itf','pdf417','qr_code']
-  });
-  try{
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio:false });
-  }catch{ status.textContent = 'Camera permission denied.'; return; }
-  const video = $('#video'); video.srcObject = stream; await video.play();
-  status.textContent = 'Point camera at VIN barcode…';
-  const loop = async()=>{
-    if(video.readyState >= 2){
-      try{
-        const codes = await detector.detect(video);
-        if(codes.length){
-          const txt = (codes[0].rawValue||codes[0].value||'').toString().toUpperCase();
-          const vin17 = txt.match(/[A-HJ-NPR-Z0-9]{17}/);
-          const key = vin17 ? vin17[0].slice(-8) : clean(txt).slice(-8);
-          renderScanResults(key, vin17 ? vin17[0] : txt);
-        }
-      }catch{}
+  return ocrWorker;
+}
+
+async function startCamera() {
+  const video = document.getElementById('video');
+  const status = document.getElementById('scanStatus');
+  const captureBtn = document.getElementById('captureBtn');
+  const stopBtn = document.getElementById('stopScanBtn');
+  
+  try {
+    status.textContent = 'Starting camera...';
+    
+    // Request camera access with preference for rear camera
+    const constraints = {
+      video: {
+        facingMode: { ideal: 'environment' }, // Prefer rear camera
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    };
+    
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    
+    video.onloadedmetadata = () => {
+      status.textContent = 'Point camera at VIN text and tap Capture';
+      captureBtn.style.display = 'inline-block';
+      stopBtn.style.display = 'inline-block';
+    };
+    
+  } catch (error) {
+    console.error('Camera error:', error);
+    status.textContent = 'Camera access denied or unavailable. Please allow camera permission and try again.';
+  }
+}
+
+function stopCamera() {
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+  const video = document.getElementById('video');
+  const captureBtn = document.getElementById('captureBtn');
+  const stopBtn = document.getElementById('stopScanBtn');
+  const status = document.getElementById('scanStatus');
+  
+  if (video) video.srcObject = null;
+  captureBtn.style.display = 'none';
+  stopBtn.style.display = 'none';
+  status.textContent = 'Camera stopped';
+  document.getElementById('scanResults').innerHTML = '';
+}
+
+async function captureAndProcessVIN() {
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const status = document.getElementById('scanStatus');
+  const captureBtn = document.getElementById('captureBtn');
+  
+  if (!video || !canvas || video.readyState !== 4) {
+    status.textContent = 'Video not ready. Please wait...';
+    return;
+  }
+  
+  try {
+    // Disable capture button during processing
+    captureBtn.disabled = true;
+    captureBtn.textContent = '🔄 Processing...';
+    status.textContent = 'Capturing and reading VIN text...';
+    
+    // Set canvas size to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw current video frame to canvas
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    
+    // Convert canvas to image data for OCR
+    const imageData = canvas.toDataURL('image/png');
+    
+    // Initialize OCR worker if needed
+    await initOCR();
+    
+    status.textContent = 'Reading text with OCR...';
+    
+    // Process with Tesseract
+    const { data: { text } } = await ocrWorker.recognize(imageData);
+    console.log('OCR result:', text);
+    
+    // Extract VIN from OCR text
+    const vinText = text.replace(/\s+/g, '').toUpperCase();
+    console.log('Cleaned OCR text:', vinText);
+    
+    // Look for 17-character VIN pattern
+    const vinMatch = vinText.match(/[A-HJ-NPR-Z0-9]{17}/);
+    let foundVin = null;
+    let last8 = '';
+    
+    if (vinMatch) {
+      foundVin = vinMatch[0];
+      last8 = foundVin.slice(-8);
+      status.textContent = `Found VIN: ${foundVin}`;
+    } else {
+      // If no 17-char VIN found, try to extract any alphanumeric sequence that might be the last 8
+      const sequences = vinText.match(/[A-HJ-NPR-Z0-9]{6,}/g) || [];
+      console.log('Found sequences:', sequences);
+      
+      if (sequences.length > 0) {
+        // Take the longest sequence and use its last 8 characters
+        const longest = sequences.reduce((a, b) => a.length > b.length ? a : b);
+        last8 = longest.slice(-8);
+        status.textContent = `Using sequence: ${longest} (last 8: ${last8})`;
+      } else {
+        status.textContent = 'No VIN text found. Try repositioning camera and capture again.';
+        captureBtn.disabled = false;
+        captureBtn.textContent = '📸 Capture VIN';
+        return;
+      }
     }
-    if(!video.paused) requestAnimationFrame(loop);
-  };
-  requestAnimationFrame(loop);
+    
+    if (last8.length >= 8) {
+      renderScanResults(last8, foundVin || vinText);
+    } else {
+      status.textContent = 'Could not extract valid VIN. Please try again.';
+    }
+    
+  } catch (error) {
+    console.error('OCR processing error:', error);
+    status.textContent = 'Error processing image. Please try again.';
+  } finally {
+    // Re-enable capture button
+    captureBtn.disabled = false;
+    captureBtn.textContent = '📸 Capture VIN';
+  }
 }
-function renderScanResults(k, scanned){
-  $('#scanStatus').textContent = `Scanned: ${scanned}`;
-  const box = $('#scanResults'); box.innerHTML='';
-  const head = document.createElement('div'); head.className='sub'; head.textContent=`Results for ${k}`; box.appendChild(head);
-  const list = IDX.get(k)||[];
-  if(list.length===0){ const d=document.createElement('div'); d.className='result'; d.innerHTML='<div>No match. Check digits. If still no match, follow SOP card C-2.</div>'; box.appendChild(d); return; }
-  list.forEach(r=>{
-    const row = document.createElement('div'); row.className='result';
-    row.innerHTML = `<div><div class="sub" style="margin:0 0 2px 0">VIN: <span style="font-family:ui-monospace">${r.vin}</span></div>
-                     <div class="big">Unit: ${r.unit||'(blank)'} </div></div>`;
-    const btn = document.createElement('button'); btn.textContent='Copy Unit'; btn.onclick=()=>navigator.clipboard.writeText(r.unit||'');
-    row.appendChild(btn); box.appendChild(row);
+
+function renderScanResults(last8, scannedText) {
+  const status = document.getElementById('scanStatus');
+  const box = document.getElementById('scanResults');
+  
+  status.textContent = `Scanned: ${scannedText}`;
+  box.innerHTML = '';
+  
+  if (!last8) return;
+  
+  const list = IDX.get(last8) || [];
+  console.log('Found', list.length, 'results for key:', last8);
+  
+  if (list.length === 0) {
+    const div = document.createElement('div');
+    div.className = 'result';
+    div.innerHTML = `<div><div class="sub">Results for <b>${last8}</b></div><div>No match found. Check VIN and try again.</div></div>`;
+    box.appendChild(div);
+    return;
+  }
+  
+  const head = document.createElement('div');
+  head.className = 'sub';
+  head.textContent = `${list.length} match${list.length > 1 ? 'es' : ''} for ${last8}`;
+  box.appendChild(head);
+  
+  list.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'result';
+    row.innerHTML = `<div>
+      <div class="sub" style="margin:0 0 2px 0">VIN: <span style="font-family:ui-monospace">${r.vin}</span></div>
+      <div class="big">Unit: ${r.unit || '(blank)'}</div>
+      <div class="sub" style="margin:2px 0 0 0">DS: <b>${r.ds || '(blank)'}</b> | DSP: <b>${r.dsp || '(blank)'}</b></div>
+    </div>`;
+    
+    const btn = document.createElement('button');
+    btn.textContent = 'Copy Unit';
+    btn.onclick = () => navigator.clipboard.writeText(r.unit || '');
+    row.appendChild(btn);
+    box.appendChild(row);
   });
 }
-function stopScan(){ try{ const v=$('#video'); v.pause(); if(stream){ stream.getTracks().forEach(t=>t.stop()); } }catch{} $('#scanResults').innerHTML=''; $('#scanStatus').textContent=''; }
-*/
 
 // ===== QR screen (Disabled) =====
 /*
@@ -332,25 +483,78 @@ function showQR(){
 function initApp() {
   console.log('initApp called');
   
-  // Simple direct assignment approach
+  // Show/hide scan button based on mobile detection
+  const goScanBtn = document.getElementById('goScan');
+  if (goScanBtn) {
+    if (isMobileDevice() && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      goScanBtn.style.display = 'inline-block';
+      console.log('Mobile device detected, showing scan button');
+    } else {
+      goScanBtn.style.display = 'none';
+      console.log('Desktop device or no camera, hiding scan button');
+    }
+  }
+  
+  // Navigation event listeners
   const goType = document.getElementById('goType');
+  const goScan = document.getElementById('goScan');
   const backHome1 = document.getElementById('backHome1');
+  const backHome2 = document.getElementById('backHome2');
+  const captureBtn = document.getElementById('captureBtn');
+  const stopScanBtn = document.getElementById('stopScanBtn');
 
   console.log('goType element:', goType);
+  console.log('goScan element:', goScan);
   console.log('home element:', document.getElementById('home'));
 
+  // Type mode navigation
   if (goType) {
     goType.addEventListener('click', () => {
       document.getElementById('home').classList.add('hide');
       document.getElementById('typeMode').classList.remove('hide');
+      document.getElementById('scanMode').classList.add('hide');
     });
   }
   
+  // Scan mode navigation
+  if (goScan) {
+    goScan.addEventListener('click', () => {
+      document.getElementById('home').classList.add('hide');
+      document.getElementById('typeMode').classList.add('hide');
+      document.getElementById('scanMode').classList.remove('hide');
+      // Start camera when entering scan mode
+      startCamera();
+    });
+  }
+  
+  // Back to home buttons
   if (backHome1) {
     backHome1.addEventListener('click', () => {
       document.getElementById('typeMode').classList.add('hide');
+      document.getElementById('scanMode').classList.add('hide');
       document.getElementById('home').classList.remove('hide');
+      // Stop camera if going back from scan mode
+      stopCamera();
     });
+  }
+  
+  if (backHome2) {
+    backHome2.addEventListener('click', () => {
+      document.getElementById('typeMode').classList.add('hide');
+      document.getElementById('scanMode').classList.add('hide');
+      document.getElementById('home').classList.remove('hide');
+      // Stop camera when going back from scan mode
+      stopCamera();
+    });
+  }
+  
+  // Scan mode controls
+  if (captureBtn) {
+    captureBtn.addEventListener('click', captureAndProcessVIN);
+  }
+  
+  if (stopScanBtn) {
+    stopScanBtn.addEventListener('click', stopCamera);
   }
 
   // Build the search button if element exists
@@ -382,6 +586,9 @@ function initApp() {
   
   // Set up auto-update mechanism
   checkForUpdates();
+  
+  // Clean up camera on page unload
+  window.addEventListener('beforeunload', stopCamera);
 }
 
 // Simple DOM ready check
