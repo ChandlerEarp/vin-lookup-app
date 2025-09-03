@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v25-SIMPLIFIED-OCR-WITH-FALLBACK"; // bump when you replace data.csv
+const BUILD_VERSION = "v26-CAMERA-DISABLED"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Mobile detection
@@ -567,6 +567,11 @@ function initApp() {
   // Show/hide scan button based on mobile detection
   const goScanBtn = document.getElementById('goScan');
   if (goScanBtn) {
+    // Temporarily disable camera scanning - hide button for everyone
+    goScanBtn.style.display = 'none';
+    console.log('Camera scanning disabled - button hidden');
+    
+    /* Original mobile detection code - commented out
     if (isMobileDevice() && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       goScanBtn.style.display = 'inline-block';
       console.log('Mobile device detected, showing scan button');
@@ -574,6 +579,7 @@ function initApp() {
       goScanBtn.style.display = 'none';
       console.log('Desktop device or no camera, hiding scan button');
     }
+    */
   }
   
   // Navigation event listeners

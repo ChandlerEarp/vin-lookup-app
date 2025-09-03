@@ -46,7 +46,8 @@
 
       <div class="row" style="justify-content:center; gap:10px;">
         <button class="primary" id="goType">⌨️ Type Last 8</button>
-        <button class="primary" id="goScan" style="display:none;">📷 Scan VIN</button>
+        <!-- Camera scanning temporarily disabled - working on improvements -->
+        <!-- <button class="primary" id="goScan" style="display:none;">📷 Scan VIN</button> -->
       </div>
 
       <div class="status center" style="margin-top:10px;">Dataset: <span class="pill" id="ver">loading…</span></div>
@@ -64,7 +65,8 @@
       <div class="results" id="results"></div>
     </div>
 
-    <!-- Scan Mode -->
+    <!-- Scan Mode - Temporarily disabled while working on improvements -->
+    <!-- 
     <div class="card hide" id="scanMode" style="margin-top:12px;">
       <div class="row" style="justify-content:space-between;">
         <div class="sub">Scan VIN with Camera</div>
@@ -79,6 +81,7 @@
       <div class="status center" id="scanStatus">Initializing camera...</div>
       <div class="results" id="scanResults"></div>
     </div>
+    -->
   </div>
 
   <script src="app.js"></script>
