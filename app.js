@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v21-MOBILE-CAMERA-OCR-DEBUG"; // bump when you replace data.csv
+const BUILD_VERSION = "v22-MOBILE-CAMERA-OCR-IMPROVED"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Mobile detection
@@ -286,9 +286,11 @@ async function initOCR() {
     ocrWorker = await Tesseract.createWorker('eng');
     await ocrWorker.setParameters({
       tessedit_char_whitelist: 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789', // VIN characters only
-      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE, // Treat as single text line
+      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD, // Better for VIN scanning
+      tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY, // Use LSTM engine
+      preserve_interword_spaces: '0', // Don't preserve spaces
     });
-    console.log('OCR worker initialized');
+    console.log('OCR worker initialized with VIN-optimized settings');
   }
   return ocrWorker;
 }
@@ -359,7 +361,7 @@ async function captureAndProcessVIN() {
     // Disable capture button during processing
     captureBtn.disabled = true;
     captureBtn.textContent = '🔄 Processing...';
-    status.textContent = 'Capturing and reading VIN text...';
+    status.textContent = 'Capturing and processing image...';
     
     // Set canvas size to match video
     canvas.width = video.videoWidth;
@@ -369,21 +371,44 @@ async function captureAndProcessVIN() {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0);
     
+    // Apply image preprocessing for better OCR
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    
+    // Convert to grayscale and increase contrast
+    for (let i = 0; i < data.length; i += 4) {
+      // Convert to grayscale
+      const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      
+      // Increase contrast (make dark darker, light lighter)
+      const contrast = (gray - 128) * 2 + 128;
+      const enhanced = Math.max(0, Math.min(255, contrast));
+      
+      data[i] = enhanced;     // red
+      data[i + 1] = enhanced; // green
+      data[i + 2] = enhanced; // blue
+      // alpha stays the same
+    }
+    
+    // Put processed image back
+    ctx.putImageData(imageData, 0, 0);
+    
     // Convert canvas to image data for OCR
-    const imageData = canvas.toDataURL('image/png');
+    const processedImageData = canvas.toDataURL('image/png');
     
     // Initialize OCR worker if needed
     await initOCR();
     
     status.textContent = 'Reading text with OCR...';
     
-    // Process with Tesseract
-    const { data: { text } } = await ocrWorker.recognize(imageData);
-    console.log('Raw OCR result:', text);
+    // Process with Tesseract using multiple recognition attempts
+    console.log('Starting OCR recognition...');
+    const { data: { text, confidence } } = await ocrWorker.recognize(processedImageData);
+    console.log('Raw OCR result:', text, 'confidence:', confidence);
     
     // Show what was actually read
     const rawText = text.trim();
-    status.textContent = `📖 Read: "${rawText}"`;
+    status.textContent = `📖 Read: "${rawText}" (${Math.round(confidence)}% confidence)`;
     
     // Extract VIN from OCR text
     const vinText = text.replace(/\s+/g, '').toUpperCase();
@@ -410,7 +435,7 @@ async function captureAndProcessVIN() {
         last8 = longest.slice(-8);
         status.textContent = `📖 Read: "${rawText}" ➜ Using: ${longest} (last 8: ${last8})`;
       } else {
-        status.textContent = `📖 Read: "${rawText}" ➜ ❌ No valid VIN text found. Try repositioning camera.`;
+        status.textContent = `📖 Read: "${rawText}" ➜ ❌ No valid VIN text found. Try repositioning camera for better clarity.`;
         captureBtn.disabled = false;
         captureBtn.textContent = '📸 Capture VIN';
         return;
