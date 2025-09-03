@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v20-MOBILE-CAMERA-OCR"; // bump when you replace data.csv
+const BUILD_VERSION = "v21-MOBILE-CAMERA-OCR-DEBUG"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Mobile detection
@@ -379,7 +379,11 @@ async function captureAndProcessVIN() {
     
     // Process with Tesseract
     const { data: { text } } = await ocrWorker.recognize(imageData);
-    console.log('OCR result:', text);
+    console.log('Raw OCR result:', text);
+    
+    // Show what was actually read
+    const rawText = text.trim();
+    status.textContent = `📖 Read: "${rawText}"`;
     
     // Extract VIN from OCR text
     const vinText = text.replace(/\s+/g, '').toUpperCase();
@@ -389,11 +393,12 @@ async function captureAndProcessVIN() {
     const vinMatch = vinText.match(/[A-HJ-NPR-Z0-9]{17}/);
     let foundVin = null;
     let last8 = '';
+    let longest = '';
     
     if (vinMatch) {
       foundVin = vinMatch[0];
       last8 = foundVin.slice(-8);
-      status.textContent = `Found VIN: ${foundVin}`;
+      status.textContent = `📖 Read: "${rawText}" ➜ Found VIN: ${foundVin}`;
     } else {
       // If no 17-char VIN found, try to extract any alphanumeric sequence that might be the last 8
       const sequences = vinText.match(/[A-HJ-NPR-Z0-9]{6,}/g) || [];
@@ -401,11 +406,11 @@ async function captureAndProcessVIN() {
       
       if (sequences.length > 0) {
         // Take the longest sequence and use its last 8 characters
-        const longest = sequences.reduce((a, b) => a.length > b.length ? a : b);
+        longest = sequences.reduce((a, b) => a.length > b.length ? a : b);
         last8 = longest.slice(-8);
-        status.textContent = `Using sequence: ${longest} (last 8: ${last8})`;
+        status.textContent = `📖 Read: "${rawText}" ➜ Using: ${longest} (last 8: ${last8})`;
       } else {
-        status.textContent = 'No VIN text found. Try repositioning camera and capture again.';
+        status.textContent = `📖 Read: "${rawText}" ➜ ❌ No valid VIN text found. Try repositioning camera.`;
         captureBtn.disabled = false;
         captureBtn.textContent = '📸 Capture VIN';
         return;
@@ -413,9 +418,9 @@ async function captureAndProcessVIN() {
     }
     
     if (last8.length >= 8) {
-      renderScanResults(last8, foundVin || vinText);
+      renderScanResults(last8, foundVin || vinText, rawText);
     } else {
-      status.textContent = 'Could not extract valid VIN. Please try again.';
+      status.textContent = `📖 Read: "${rawText}" ➜ ❌ Could not extract valid VIN sequence.`;
     }
     
   } catch (error) {
@@ -428,11 +433,12 @@ async function captureAndProcessVIN() {
   }
 }
 
-function renderScanResults(last8, scannedText) {
+function renderScanResults(last8, scannedText, rawText) {
   const status = document.getElementById('scanStatus');
   const box = document.getElementById('scanResults');
   
-  status.textContent = `Scanned: ${scannedText}`;
+  // Show what was read and what we're searching for
+  status.textContent = `📖 Read: "${rawText}" ➜ Searching for: ${last8}`;
   box.innerHTML = '';
   
   if (!last8) return;
@@ -443,14 +449,19 @@ function renderScanResults(last8, scannedText) {
   if (list.length === 0) {
     const div = document.createElement('div');
     div.className = 'result';
-    div.innerHTML = `<div><div class="sub">Results for <b>${last8}</b></div><div>No match found. Check VIN and try again.</div></div>`;
+    div.innerHTML = `<div>
+      <div class="sub">Searched for <b>${last8}</b></div>
+      <div>❌ Couldn't find "${last8}" in database.</div>
+      <div class="sub" style="margin-top:8px;">Raw text read: "${rawText}"</div>
+      <div class="sub">Try repositioning camera for clearer text.</div>
+    </div>`;
     box.appendChild(div);
     return;
   }
   
   const head = document.createElement('div');
   head.className = 'sub';
-  head.textContent = `${list.length} match${list.length > 1 ? 'es' : ''} for ${last8}`;
+  head.textContent = `✅ ${list.length} match${list.length > 1 ? 'es' : ''} found for ${last8}`;
   box.appendChild(head);
   
   list.forEach(r => {
