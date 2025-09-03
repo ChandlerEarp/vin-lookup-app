@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v23-OCR-ENHANCED"; // bump when you replace data.csv
+const BUILD_VERSION = "v24-MULTI-OCR-ENHANCED"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Mobile detection
@@ -285,15 +285,17 @@ async function initOCR() {
     console.log('Initializing Tesseract OCR worker...');
     ocrWorker = await Tesseract.createWorker('eng');
     await ocrWorker.setParameters({
-      tessedit_char_whitelist: 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789', // Keep your VIN charset
-      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK, // Better for text blocks
+      tessedit_char_whitelist: 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789', // VIN charset (no I, O)
+      tessedit_pageseg_mode: Tesseract.PSM.RAW_LINE, // Try raw line mode for better accuracy
       tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY,
       preserve_interword_spaces: '0',
-      // Add these parameters for better accuracy
       tessedit_do_invert: '0',
-      classify_bln_numeric_mode: '0'
+      classify_bln_numeric_mode: '0',
+      // Additional accuracy parameters
+      edges_max_children_per_outline: '40',
+      edges_children_count_limit: '45'
     });
-    console.log('OCR worker initialized with improved settings');
+    console.log('OCR worker initialized with enhanced VIN settings');
   }
   return ocrWorker;
 }
@@ -374,16 +376,16 @@ async function captureAndProcessVIN() {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0);
     
-    // Better image preprocessing
+    // Better image preprocessing with multiple techniques
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     
-    // Improved preprocessing: less aggressive contrast, better threshold
+    // Step 1: Convert to grayscale with better contrast
     for (let i = 0; i < data.length; i += 4) {
       const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
       
-      // Apply threshold instead of contrast adjustment
-      const threshold = gray > 127 ? 255 : 0;
+      // Apply adaptive threshold based on local area
+      const threshold = gray > 140 ? 255 : 0; // Slightly higher threshold for better separation
       
       data[i] = threshold;
       data[i + 1] = threshold; 
@@ -392,38 +394,122 @@ async function captureAndProcessVIN() {
     
     ctx.putImageData(imageData, 0, 0);
     
-    // Scale up the image for better OCR accuracy
+    // Step 2: Scale up significantly for better character recognition
     const scaledCanvas = document.createElement('canvas');
     const scaledCtx = scaledCanvas.getContext('2d');
-    scaledCanvas.width = canvas.width * 2;
-    scaledCanvas.height = canvas.height * 2;
+    scaledCanvas.width = canvas.width * 3; // Increase scale factor
+    scaledCanvas.height = canvas.height * 3;
     
     scaledCtx.imageSmoothingEnabled = false;
     scaledCtx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
     
-    const processedImageData = scaledCanvas.toDataURL('image/png');
+    // Step 3: Try multiple OCR attempts with different preprocessing
+    
+    // First attempt: scaled image
+    const scaledImageData = scaledCanvas.toDataURL('image/png');
+    
+    // Second attempt: add some morphological operations if needed
+    const enhancedCanvas = document.createElement('canvas');
+    const enhancedCtx = enhancedCanvas.getContext('2d');
+    enhancedCanvas.width = scaledCanvas.width;
+    enhancedCanvas.height = scaledCanvas.height;
+    enhancedCtx.drawImage(scaledCanvas, 0, 0);
+    
+    // Apply slight dilation to thicken characters
+    const enhancedImageData = enhancedCtx.getImageData(0, 0, enhancedCanvas.width, enhancedCanvas.height);
+    const enhancedData = enhancedImageData.data;
+    
+    // Simple dilation (makes white pixels slightly bigger)
+    for (let y = 1; y < enhancedCanvas.height - 1; y++) {
+      for (let x = 1; x < enhancedCanvas.width - 1; x++) {
+        const idx = (y * enhancedCanvas.width + x) * 4;
+        if (enhancedData[idx] === 255) { // If pixel is white
+          // Make neighboring pixels white too (dilation)
+          const neighbors = [
+            ((y-1) * enhancedCanvas.width + x) * 4,
+            ((y+1) * enhancedCanvas.width + x) * 4,
+            (y * enhancedCanvas.width + (x-1)) * 4,
+            (y * enhancedCanvas.width + (x+1)) * 4
+          ];
+          neighbors.forEach(nIdx => {
+            if (nIdx >= 0 && nIdx < enhancedData.length) {
+              enhancedData[nIdx] = 255;
+              enhancedData[nIdx + 1] = 255;
+              enhancedData[nIdx + 2] = 255;
+            }
+          });
+        }
+      }
+    }
+    
+    enhancedCtx.putImageData(enhancedImageData, 0, 0);
+    const enhancedProcessedData = enhancedCanvas.toDataURL('image/png');
+    
+    const processedImageData = scaledImageData; // Use the scaled version for now
     
     // Initialize OCR worker if needed
     await initOCR();
     
-    status.textContent = 'Reading text with enhanced OCR...';
+    status.textContent = 'Reading text with multiple OCR techniques...';
     
-    console.log('Starting OCR recognition...');
-    const { data: { text, confidence } } = await ocrWorker.recognize(processedImageData);
+    console.log('Starting enhanced OCR recognition...');
     
-    const rawText = text.trim();
-    console.log('Raw OCR result:', rawText, 'confidence:', confidence);
+    // Try multiple OCR approaches for better accuracy
+    const results = [];
     
-    // Better text extraction
-    const cleanedText = rawText.replace(/\s+/g, '').toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
-    console.log('Cleaned text:', cleanedText);
+    // Attempt 1: Standard processing
+    try {
+      const result1 = await ocrWorker.recognize(processedImageData);
+      results.push({ ...result1.data, method: 'standard' });
+      console.log('OCR attempt 1 (standard):', result1.data.text, 'confidence:', result1.data.confidence);
+    } catch (e) {
+      console.log('OCR attempt 1 failed:', e);
+    }
     
-    status.textContent = `📖 Read: "${rawText}" → Cleaned: "${cleanedText}" (${Math.round(confidence)}% confidence)`;
+    // Attempt 2: Try with enhanced image if different
+    if (enhancedProcessedData !== processedImageData) {
+      try {
+        const result2 = await ocrWorker.recognize(enhancedProcessedData);
+        results.push({ ...result2.data, method: 'enhanced' });
+        console.log('OCR attempt 2 (enhanced):', result2.data.text, 'confidence:', result2.data.confidence);
+      } catch (e) {
+        console.log('OCR attempt 2 failed:', e);
+      }
+    }
+    
+    // Choose the best result based on confidence and text length
+    let bestResult = results.reduce((best, current) => {
+      const currentScore = current.confidence * (current.text.replace(/\s/g, '').length / 10); // Favor longer text
+      const bestScore = best.confidence * (best.text.replace(/\s/g, '').length / 10);
+      return currentScore > bestScore ? current : best;
+    }, { text: '', confidence: 0, method: 'none' });
+    
+    const rawText = bestResult.text.trim();
+    console.log('Best OCR result:', rawText, 'confidence:', bestResult.confidence, 'method:', bestResult.method);
+    
+    // Enhanced text extraction with character substitution
+    let cleanedText = rawText.replace(/\s+/g, '').toUpperCase();
+    
+    // Apply common OCR error corrections for VINs
+    const corrections = {
+      'O': '0', 'I': '1', 'Q': '0', 'S': '5', 'Z': '2', 'B': '8'
+    };
+    
+    // Apply corrections and then filter to VIN characters
+    Object.keys(corrections).forEach(wrong => {
+      cleanedText = cleanedText.replace(new RegExp(wrong, 'g'), corrections[wrong]);
+    });
+    
+    // Now filter to valid VIN characters
+    cleanedText = cleanedText.replace(/[^A-HJ-NPR-Z0-9]/g, '');
+    
+    console.log('Cleaned and corrected text:', cleanedText);
+    
+    status.textContent = `📖 Read: "${rawText}" → Cleaned: "${cleanedText}" (${Math.round(bestResult.confidence)}% confidence, ${bestResult.method})`;
     
     // Try multiple approaches to extract VIN
     let last8 = '';
     let searchTerm = '';
-    let longest = '';
     
     if (cleanedText.length >= 17) {
       // Full VIN found
@@ -442,8 +528,18 @@ async function captureAndProcessVIN() {
       status.textContent = `📖 Using last 8 from: "${cleanedText}" → ${last8}`;
     }
     
-    if (!last8) {
-      status.textContent = `📖 Read: "${rawText}" → ❌ Not enough characters found. Try getting closer to the VIN.`;
+    if (!last8 && rawText.length > 0) {
+      // Last resort: try any sequence from original text
+      const anySequence = rawText.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      if (anySequence.length >= 6) {
+        last8 = anySequence.slice(-8).padStart(8, '0'); // Pad with zeros if needed
+        searchTerm = anySequence;
+        status.textContent = `📖 Last resort using: "${anySequence}" → ${last8}`;
+      }
+    }
+    
+    if (!last8 || last8.length < 6) {
+      status.textContent = `📖 Read: "${rawText}" → ❌ Not enough valid characters found. Try better lighting and get closer to VIN.`;
       return;
     }
     
