@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v26-CAMERA-DISABLED"; // bump when you replace data.csv
+const BUILD_VERSION = "v27-NAVIGATION-FIX"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Mobile detection
@@ -338,12 +338,13 @@ function stopCamera() {
   const captureBtn = document.getElementById('captureBtn');
   const stopBtn = document.getElementById('stopScanBtn');
   const status = document.getElementById('scanStatus');
+  const scanResults = document.getElementById('scanResults');
   
   if (video) video.srcObject = null;
-  captureBtn.style.display = 'none';
-  stopBtn.style.display = 'none';
-  status.textContent = 'Camera stopped';
-  document.getElementById('scanResults').innerHTML = '';
+  if (captureBtn) captureBtn.style.display = 'none';
+  if (stopBtn) stopBtn.style.display = 'none';
+  if (status) status.textContent = 'Camera stopped';
+  if (scanResults) scanResults.innerHTML = '';
 }
 
 async function captureAndProcessVIN() {
@@ -586,56 +587,75 @@ function initApp() {
   const goType = document.getElementById('goType');
   const goScan = document.getElementById('goScan');
   const backHome1 = document.getElementById('backHome1');
-  const backHome2 = document.getElementById('backHome2');
+  const backHome2 = document.getElementById('backHome2'); // This might be null if scan mode is commented out
   const captureBtn = document.getElementById('captureBtn');
   const stopScanBtn = document.getElementById('stopScanBtn');
 
   console.log('goType element:', goType);
   console.log('goScan element:', goScan);
+  console.log('backHome1 element:', backHome1);
+  console.log('backHome2 element:', backHome2);
   console.log('home element:', document.getElementById('home'));
 
   // Type mode navigation
   if (goType) {
     goType.addEventListener('click', () => {
+      console.log('goType clicked - switching to type mode');
       document.getElementById('home').classList.add('hide');
       document.getElementById('typeMode').classList.remove('hide');
-      document.getElementById('scanMode').classList.add('hide');
+      // Only hide scan mode if it exists
+      const scanMode = document.getElementById('scanMode');
+      if (scanMode) scanMode.classList.add('hide');
     });
   }
   
-  // Scan mode navigation
+  // Scan mode navigation (only if scan button exists)
   if (goScan) {
     goScan.addEventListener('click', () => {
+      console.log('goScan clicked - switching to scan mode');
       document.getElementById('home').classList.add('hide');
       document.getElementById('typeMode').classList.add('hide');
-      document.getElementById('scanMode').classList.remove('hide');
-      // Start camera when entering scan mode
-      startCamera();
+      const scanMode = document.getElementById('scanMode');
+      if (scanMode) {
+        scanMode.classList.remove('hide');
+        // Start camera when entering scan mode
+        startCamera();
+      }
     });
   }
   
-  // Back to home buttons
+  // Back to home from type mode
   if (backHome1) {
     backHome1.addEventListener('click', () => {
+      console.log('backHome1 clicked - returning to home');
       document.getElementById('typeMode').classList.add('hide');
-      document.getElementById('scanMode').classList.add('hide');
+      // Only hide scan mode if it exists
+      const scanMode = document.getElementById('scanMode');
+      if (scanMode) scanMode.classList.add('hide');
       document.getElementById('home').classList.remove('hide');
-      // Stop camera if going back from scan mode
-      stopCamera();
+      // Clear any results when going back
+      const results = document.getElementById('results');
+      if (results) results.innerHTML = '';
+      // Clear input
+      const q = document.getElementById('q');
+      if (q) q.value = '';
     });
   }
   
+  // Back to home from scan mode (only if button exists)
   if (backHome2) {
     backHome2.addEventListener('click', () => {
+      console.log('backHome2 clicked - returning to home');
       document.getElementById('typeMode').classList.add('hide');
-      document.getElementById('scanMode').classList.add('hide');
+      const scanMode = document.getElementById('scanMode');
+      if (scanMode) scanMode.classList.add('hide');
       document.getElementById('home').classList.remove('hide');
       // Stop camera when going back from scan mode
       stopCamera();
     });
   }
   
-  // Scan mode controls
+  // Scan mode controls (only if they exist)
   if (captureBtn) {
     captureBtn.addEventListener('click', captureAndProcessVIN);
   }
