@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v27-NAVIGATION-FIX"; // bump when you replace data.csv
+const BUILD_VERSION = "v28-NO-UNIT-MSG"; // bump when you replace data.csv
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Mobile detection
@@ -225,9 +225,10 @@ function showResults(k){
   head.textContent = `${list.length} match${list.length>1?'es':''} for ${k}`; box.appendChild(head);
   list.forEach(r=>{
     const row = document.createElement('div'); row.className='result';
+    let unitDisplay = r.unit && r.unit.trim() ? r.unit : '<span style="color:#d32f2f;font-weight:bold">No unit, do not install.</span>';
     row.innerHTML = `<div>
       <div class="sub" style="margin:0 0 2px 0">VIN: <span style="font-family:ui-monospace">${r.vin}</span></div>
-      <div class="big">Unit: ${r.unit||'(blank)'}</div>
+      <div class="big">Unit: ${unitDisplay}</div>
       <div class="sub" style="margin:2px 0 0 0">DS: <b>${r.ds||'(blank)'}</b> | DSP: <b>${r.dsp||'(blank)'}</b></div>
     </div>`;
     const btn = document.createElement('button'); btn.textContent='Copy Unit';
@@ -511,12 +512,9 @@ function renderScanResults(last8, scannedText, rawText) {
   // Show what was read and what we're searching for
   status.textContent = `📖 Read: "${rawText}" ➜ Searching for: ${last8}`;
   box.innerHTML = '';
-  
   if (!last8) return;
-  
   const list = IDX.get(last8) || [];
   console.log('Found', list.length, 'results for key:', last8);
-  
   if (list.length === 0) {
     const div = document.createElement('div');
     div.className = 'result';
@@ -529,21 +527,19 @@ function renderScanResults(last8, scannedText, rawText) {
     box.appendChild(div);
     return;
   }
-  
   const head = document.createElement('div');
   head.className = 'sub';
   head.textContent = `✅ ${list.length} match${list.length > 1 ? 'es' : ''} found for ${last8}`;
   box.appendChild(head);
-  
   list.forEach(r => {
     const row = document.createElement('div');
     row.className = 'result';
+    let unitDisplay = r.unit && r.unit.trim() ? r.unit : '<span style="color:#d32f2f;font-weight:bold">No unit, do not install.</span>';
     row.innerHTML = `<div>
       <div class="sub" style="margin:0 0 2px 0">VIN: <span style="font-family:ui-monospace">${r.vin}</span></div>
-      <div class="big">Unit: ${r.unit || '(blank)'}</div>
+      <div class="big">Unit: ${unitDisplay}</div>
       <div class="sub" style="margin:2px 0 0 0">DS: <b>${r.ds || '(blank)'}</b> | DSP: <b>${r.dsp || '(blank)'}</b></div>
     </div>`;
-    
     const btn = document.createElement('button');
     btn.textContent = 'Copy Unit';
     btn.onclick = () => navigator.clipboard.writeText(r.unit || '');
