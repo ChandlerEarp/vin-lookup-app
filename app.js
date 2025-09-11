@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v31-PLATE-UNIT-SHOWALL"; // bump when you replace data.csv or code
+const BUILD_VERSION = "v32-RESULT-UNIFORM"; // bump when you replace data.csv or code
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Mobile detection
@@ -514,7 +514,7 @@ function retryCapture() {
 }
 
 function renderScanResults(last8, scannedText, rawText) {
-  const status = document.getElementById('scanStatus');
+  const status = document
   const box = document.getElementById('scanResults');
   
   // Show what was read and what we're searching for
@@ -544,9 +544,10 @@ function renderScanResults(last8, scannedText, rawText) {
     row.className = 'result';
     let unitDisplay = r.unit && r.unit.trim() ? r.unit : '<span style="color:#d32f2f;font-weight:bold">No unit, do not install.</span>';
     row.innerHTML = `<div>
-      <div class="sub" style="margin:0 0 2px 0">VIN: <span style="font-family:ui-monospace">${r.vin}</span></div>
-      <div class="big">Unit: ${unitDisplay}</div>
-      <div class="sub" style="margin:2px 0 0 0">DS: <b>${r.ds || '(blank)'}</b> | DSP: <b>${r.dsp || '(blank)'}</b></div>
+      <div class="result-field">VIN: <b>${r.vin||'(blank)'}</b></div>
+      <div class="result-field">Unit: <b>${r.unit||'(blank)'}</b></div>
+      <div class="result-field">Plate: <b>${r.plate||'(blank)'}</b></div>
+      <div class="result-field">DS: <b>${r.ds||'(blank)'}</b> | DSP: <b>${r.dsp||'(blank)'}</b></div>
     </div>`;
     const btn = document.createElement('button');
     btn.textContent = 'Copy Unit';
@@ -702,8 +703,7 @@ function initApp() {
   // Unit/Plate Lookup navigation
   if (goUnitPlate) {
     goUnitPlate.addEventListener('click', () => {
-      document.getElementById('home').classList.add('hide');
-      if (document.getElementById('typeMode')) document.getElementById('typeMode').classList.add('hide');
+      document.getElementById('home').classList
       if (unitPlateMode) unitPlateMode.classList.remove('hide');
     });
   }

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'VIN-APP-V31-PLATE-UNIT-SHOWALL'; // bump when you change code or data
-// Force update: V31 - always update cache version with any change
+const CACHE_NAME = 'VIN-APP-V32-RESULT-UNIFORM'; // bump when you change code or data
+// Force update: V32 - uniform result style and logo update
 const ASSETS = [
   './',
   './index.html',
