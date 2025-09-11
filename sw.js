@@ -1,5 +1,5 @@
-const CACHE_NAME = 'VIN-APP-V33-RESULT-FIX'; // bump when you change code or data
-// Force update: V33 - result style and navigation fix
+const CACHE_NAME = 'VIN-APP-V34-COPY-VIN'; // bump when you change code or data
+// Force update: V34 - add Copy VIN button to results
 const ASSETS = [
   './',
   './index.html',

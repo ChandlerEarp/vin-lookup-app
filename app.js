@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v33-RESULT-FIX"; // bump
+const BUILD_VERSION = "v34-COPY-VIN"; // bump when you replace data.csv or code
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Mobile detection
@@ -627,6 +627,11 @@ function showUnitPlateResults(unit, plate) {
       <div class="result-field">Plate: <b>${r.plate||'(blank)'}</b></div>
       <div class="result-field">DS: <b>${r.ds||'(blank)'}</b> | DSP: <b>${r.dsp||'(blank)'}</b></div>
     </div>`;
+    // Add Copy VIN button
+    const btn = document.createElement('button');
+    btn.textContent = 'Copy VIN';
+    btn.onclick = () => navigator.clipboard.writeText(r.vin || '');
+    row.appendChild(btn);
     box.appendChild(row);
   });
 }
