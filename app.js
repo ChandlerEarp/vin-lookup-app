@@ -783,6 +783,26 @@ function initApp() {
     });
   }
   
+  // Unit/Plate Lookup controls
+  const unitInput = document.getElementById('unitInput');
+  const plateInput = document.getElementById('plateInput');
+  const unitPlateSearchBtn = document.getElementById('unitPlateSearchBtn');
+  if (unitPlateSearchBtn && unitInput && plateInput) {
+    unitPlateSearchBtn.addEventListener('click', () => {
+      const unit = unitInput.value.trim().toUpperCase();
+      const plate = plateInput.value.trim().toUpperCase();
+      if (!unit && !plate) {
+        const box = document.getElementById('unitPlateResults');
+        box.innerHTML = '<div class="result"><div>Please enter a Unit or Plate to search.</div></div>';
+        unitInput.focus();
+        return;
+      }
+      showUnitPlateResults(unit, plate);
+    });
+    unitInput.addEventListener('keyup', e => { if (e.key === 'Enter') unitPlateSearchBtn.click(); });
+    plateInput.addEventListener('keyup', e => { if (e.key === 'Enter') unitPlateSearchBtn.click(); });
+  }
+  
   // Load the CSV data
   loadBundledCSV();
   loadData2CSV();
