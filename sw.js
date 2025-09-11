@@ -1,5 +1,5 @@
-const CACHE_NAME = 'VIN-APP-V32-RESULT-UNIFORM'; // bump when you change code or data
-// Force update: V32 - uniform result style and logo update
+const CACHE_NAME = 'VIN-APP-V33-RESULT-FIX'; // bump when you change code or data
+// Force update: V33 - result style and navigation fix
 const ASSETS = [
   './',
   './index.html',

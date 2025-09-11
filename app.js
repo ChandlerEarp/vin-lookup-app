@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v32-RESULT-UNIFORM"; // bump when you replace data.csv or code
+const BUILD_VERSION = "v33-RESULT-FIX"; // bump
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Mobile detection
@@ -622,9 +622,10 @@ function showUnitPlateResults(unit, plate) {
     const row = document.createElement('div');
     row.className = 'result';
     row.innerHTML = `<div>
-      <div class="sub">VIN: <span style="font-family:ui-monospace">${r.vin}</span></div>
-      <div class="big">Unit: <b>${r.unit||'(blank)'}</b> | Plate: <b>${r.plate||'(blank)'}</b></div>
-      <div class="sub">DS: <b>${r.ds||'(blank)'}</b> | DSP: <b>${r.dsp||'(blank)'}</b></div>
+      <div class="result-field">VIN: <b>${r.vin||'(blank)'}</b></div>
+      <div class="result-field">Unit: <b>${r.unit||'(blank)'}</b></div>
+      <div class="result-field">Plate: <b>${r.plate||'(blank)'}</b></div>
+      <div class="result-field">DS: <b>${r.ds||'(blank)'}</b> | DSP: <b>${r.dsp||'(blank)'}</b></div>
     </div>`;
     box.appendChild(row);
   });
@@ -703,7 +704,8 @@ function initApp() {
   // Unit/Plate Lookup navigation
   if (goUnitPlate) {
     goUnitPlate.addEventListener('click', () => {
-      document.getElementById('home').classList
+      document.getElementById('home').classList.add('hide');
+      if (document.getElementById('typeMode')) document.getElementById('typeMode').classList.add('hide');
       if (unitPlateMode) unitPlateMode.classList.remove('hide');
     });
   }
