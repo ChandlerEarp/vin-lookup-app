@@ -48,6 +48,7 @@
         <button class="primary" id="goType">⌨️ Type Last 8</button>
         <!-- Camera scanning temporarily disabled - working on improvements -->
         <!-- <button class="primary" id="goScan" style="display:none;">📷 Scan VIN</button> -->
+        <button class="primary" id="goUnitPlate">🔎 Unit/Plate Lookup</button>
       </div>
 
       <div class="status center" style="margin-top:10px;">Dataset: <span class="pill" id="ver">loading…</span></div>
@@ -82,6 +83,20 @@
       <div class="results" id="scanResults"></div>
     </div>
     -->
+
+    <!-- Unit/Plate Lookup Mode -->
+    <div class="card hide" id="unitPlateMode" style="margin-top:12px;">
+      <div class="row" style="justify-content:space-between;">
+        <div class="sub">Lookup by Unit or Plate</div>
+        <button id="backHome3">⬅ Home</button>
+      </div>
+      <input id="unitInput" class="input" maxlength="10" placeholder="Unit number (e.g., 320000)" autocomplete="off" autocorrect="off" spellcheck="false" style="margin-bottom:8px;" />
+      <input id="plateInput" class="input" maxlength="10" placeholder="Plate (e.g., WPJ1837)" autocomplete="off" autocorrect="off" spellcheck="false" />
+      <div class="row" style="margin-top:10px; gap:10px;">
+        <button class="primary" id="unitPlateSearchBtn" style="width:100%;">🔍 Search</button>
+      </div>
+      <div class="results" id="unitPlateResults"></div>
+    </div>
   </div>
 
   <script src="app.js"></script>

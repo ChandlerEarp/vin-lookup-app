@@ -5,7 +5,8 @@ const ASSETS = [
   './app.js',
   './manifest.webmanifest',
   './logo.png',
-  './data.csv'
+  './data.csv',
+  './data2.csv' // Add data2.csv for Unit/Plate lookup
 ];
 
 // Install immediately and take control

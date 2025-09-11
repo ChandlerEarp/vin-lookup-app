@@ -548,14 +548,78 @@ function renderScanResults(last8, scannedText, rawText) {
   });
 }
 
-// ===== QR screen (Disabled) =====
-/*
-function showQR(){
-  const url = location.href.split('#')[0];
-  $('#qrUrl').textContent = url;
-  QRCode.toCanvas($('#qrCanvas'), url);
+// ===== Unit/Plate Lookup (data2.csv) =====
+let IDX2_UNIT = new Map(); // unit -> [row]
+let IDX2_PLATE = new Map(); // plate -> [row]
+let COUNT2 = 0;
+
+async function loadData2CSV() {
+  try {
+    const res = await fetch('data2.csv?v=' + encodeURIComponent(BUILD_VERSION), { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const { headers, rows } = parseCSV(text);
+    // Detect columns
+    const low = headers.map(h => h.toLowerCase());
+    const vinIdx = low.findIndex(h => /vin/.test(h));
+    const unitIdx = low.findIndex(h => /unit/.test(h));
+    const plateIdx = low.findIndex(h => /plate/.test(h));
+    const dsIdx = low.findIndex(h => /ds$/.test(h));
+    const dspIdx = low.findIndex(h => /dsp/.test(h));
+    IDX2_UNIT = new Map();
+    IDX2_PLATE = new Map();
+    COUNT2 = 0;
+    for (const r of rows) {
+      const vin = (r[vinIdx]||"").toString().trim();
+      const unit = (r[unitIdx]||"").toString().trim();
+      const plate = (r[plateIdx]||"").toString().trim();
+      const ds = (r[dsIdx]||"").toString().trim();
+      const dsp = (r[dspIdx]||"").toString().trim();
+      const rec = { vin, unit, plate, ds, dsp };
+      if (unit) {
+        if (!IDX2_UNIT.has(unit)) IDX2_UNIT.set(unit, []);
+        IDX2_UNIT.get(unit).push(rec);
+      }
+      if (plate) {
+        if (!IDX2_PLATE.has(plate)) IDX2_PLATE.set(plate, []);
+        IDX2_PLATE.get(plate).push(rec);
+      }
+      COUNT2++;
+    }
+    console.log('Loaded data2.csv:', COUNT2, 'rows');
+  } catch (e) {
+    console.error('Error loading data2.csv:', e);
+  }
 }
-*/
+
+function showUnitPlateResults(unit, plate) {
+  const box = document.getElementById('unitPlateResults');
+  box.innerHTML = '';
+  let results = [];
+  if (unit) {
+    results = IDX2_UNIT.get(unit) || [];
+  } else if (plate) {
+    results = IDX2_PLATE.get(plate) || [];
+  }
+  if (results.length === 0) {
+    box.innerHTML = `<div class="result"><div>No match found for ${unit ? 'Unit: <b>'+unit+'</b>' : 'Plate: <b>'+plate+'</b>'}.</div></div>`;
+    return;
+  }
+  const head = document.createElement('div');
+  head.className = 'sub';
+  head.textContent = `${results.length} match${results.length>1?'es':''} for ${unit ? 'Unit '+unit : 'Plate '+plate}`;
+  box.appendChild(head);
+  results.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'result';
+    row.innerHTML = `<div>
+      <div class="sub">VIN: <span style="font-family:ui-monospace">${r.vin}</span></div>
+      <div class="big">${unit ? 'Unit: '+r.unit : 'Plate: '+r.plate}</div>
+      <div class="sub">DS: <b>${r.ds||'(blank)'}</b> | DSP: <b>${r.dsp||'(blank)'}</b></div>
+    </div>`;
+    box.appendChild(row);
+  });
+}
 
 // ===== Nav & Boot =====
 function initApp() {
@@ -582,15 +646,20 @@ function initApp() {
   // Navigation event listeners
   const goType = document.getElementById('goType');
   const goScan = document.getElementById('goScan');
+  const goUnitPlate = document.getElementById('goUnitPlate');
   const backHome1 = document.getElementById('backHome1');
   const backHome2 = document.getElementById('backHome2'); // This might be null if scan mode is commented out
+  const backHome3 = document.getElementById('backHome3');
   const captureBtn = document.getElementById('captureBtn');
   const stopScanBtn = document.getElementById('stopScanBtn');
+  const unitPlateMode = document.getElementById('unitPlateMode');
 
   console.log('goType element:', goType);
   console.log('goScan element:', goScan);
+  console.log('goUnitPlate element:', goUnitPlate);
   console.log('backHome1 element:', backHome1);
   console.log('backHome2 element:', backHome2);
+  console.log('backHome3 element:', backHome3);
   console.log('home element:', document.getElementById('home'));
 
   // Type mode navigation
@@ -602,6 +671,7 @@ function initApp() {
       // Only hide scan mode if it exists
       const scanMode = document.getElementById('scanMode');
       if (scanMode) scanMode.classList.add('hide');
+      if (unitPlateMode) unitPlateMode.classList.add('hide');
     });
   }
   
@@ -617,6 +687,16 @@ function initApp() {
         // Start camera when entering scan mode
         startCamera();
       }
+      if (unitPlateMode) unitPlateMode.classList.add('hide');
+    });
+  }
+  
+  // Unit/Plate Lookup navigation
+  if (goUnitPlate) {
+    goUnitPlate.addEventListener('click', () => {
+      document.getElementById('home').classList.add('hide');
+      if (document.getElementById('typeMode')) document.getElementById('typeMode').classList.add('hide');
+      if (unitPlateMode) unitPlateMode.classList.remove('hide');
     });
   }
   
@@ -648,6 +728,25 @@ function initApp() {
       document.getElementById('home').classList.remove('hide');
       // Stop camera when going back from scan mode
       stopCamera();
+    });
+  }
+  
+  // Back to home from unit/plate mode (only if button exists)
+  if (backHome3) {
+    backHome3.addEventListener('click', () => {
+      console.log('backHome3 clicked - returning to home');
+      const scanMode = document.getElementById('scanMode');
+      if (scanMode) scanMode.classList.add('hide');
+      const unitPlateMode = document.getElementById('unitPlateMode');
+      if (unitPlateMode) unitPlateMode.classList.add('hide');
+      document.getElementById('home').classList.remove('hide');
+      // Clear input
+      const unitInput = document.getElementById('unitInput');
+      const plateInput = document.getElementById('plateInput');
+      if (unitInput) unitInput.value = '';
+      if (plateInput) plateInput.value = '';
+      const box = document.getElementById('unitPlateResults');
+      if (box) box.innerHTML = '';
     });
   }
   
@@ -686,6 +785,7 @@ function initApp() {
   
   // Load the CSV data
   loadBundledCSV();
+  loadData2CSV();
   
   // Set up auto-update mechanism
   checkForUpdates();
