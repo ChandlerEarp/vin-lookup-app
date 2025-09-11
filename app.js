@@ -174,7 +174,15 @@ JALE5W160N7303550,820077,TEST9,DEMO9`;
 
     const verEl = document.getElementById('ver');
     const statusEl = document.getElementById('loadStatus');
-    if (verEl) verEl.textContent = localStorage.getItem('vin_unit_version');
+    if (verEl) {
+      // Always show current BUILD_VERSION if localStorage version is missing or outdated
+      const storedVersion = localStorage.getItem('vin_unit_version');
+      if (!storedVersion || !storedVersion.includes(BUILD_VERSION)) {
+        verEl.textContent = BUILD_VERSION;
+      } else {
+        verEl.textContent = storedVersion;
+      }
+    }
     if (statusEl) statusEl.textContent = `Loaded ${COUNT.toLocaleString()} rows · ${IDX.size.toLocaleString()} keys`;
     console.log('CSV loading completed successfully');
   }catch(e){
@@ -614,7 +622,7 @@ function showUnitPlateResults(unit, plate) {
     row.className = 'result';
     row.innerHTML = `<div>
       <div class="sub">VIN: <span style="font-family:ui-monospace">${r.vin}</span></div>
-      <div class="big">${unit ? 'Unit: '+r.unit : 'Plate: '+r.plate}</div>
+      <div class="big">Unit: <b>${r.unit||'(blank)'}</b> | Plate: <b>${r.plate||'(blank)'}</b></div>
       <div class="sub">DS: <b>${r.ds||'(blank)'}</b> | DSP: <b>${r.dsp||'(blank)'}</b></div>
     </div>`;
     box.appendChild(row);
