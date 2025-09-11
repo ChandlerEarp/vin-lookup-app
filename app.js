@@ -788,19 +788,23 @@ function initApp() {
   const plateInput = document.getElementById('plateInput');
   const unitPlateSearchBtn = document.getElementById('unitPlateSearchBtn');
   if (unitPlateSearchBtn && unitInput && plateInput) {
-    unitPlateSearchBtn.addEventListener('click', () => {
+    // Auto-search as you type, no button needed
+    function autoUnitPlateSearch() {
       const unit = unitInput.value.trim().toUpperCase();
       const plate = plateInput.value.trim().toUpperCase();
       if (!unit && !plate) {
         const box = document.getElementById('unitPlateResults');
-        box.innerHTML = '<div class="result"><div>Please enter a Unit or Plate to search.</div></div>';
-        unitInput.focus();
+        box.innerHTML = '';
         return;
       }
       showUnitPlateResults(unit, plate);
-    });
-    unitInput.addEventListener('keyup', e => { if (e.key === 'Enter') unitPlateSearchBtn.click(); });
-    plateInput.addEventListener('keyup', e => { if (e.key === 'Enter') unitPlateSearchBtn.click(); });
+    }
+    unitInput.addEventListener('input', autoUnitPlateSearch);
+    plateInput.addEventListener('input', autoUnitPlateSearch);
+    unitInput.addEventListener('keyup', e => { if (e.key === 'Enter') autoUnitPlateSearch(); });
+    plateInput.addEventListener('keyup', e => { if (e.key === 'Enter') autoUnitPlateSearch(); });
+    // Hide the search button (optional, since it's not needed)
+    unitPlateSearchBtn.style.display = 'none';
   }
   
   // Load the CSV data

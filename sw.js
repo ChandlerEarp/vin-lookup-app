@@ -1,4 +1,4 @@
-const CACHE_NAME = 'VIN-APP-V28-NO-UNIT-MSG'; // bump when you replace data.csv or code
+const CACHE_NAME = 'VIN-APP-V29-UNITPLATE-AUTOTYPE'; // bump when you change code or data
 const ASSETS = [
   './',
   './index.html',
@@ -6,7 +6,7 @@ const ASSETS = [
   './manifest.webmanifest',
   './logo.png',
   './data.csv',
-  './data2.csv' // Add data2.csv for Unit/Plate lookup
+  './data2.csv' // cache data2.csv for Unit/Plate lookup
 ];
 
 // Install immediately and take control
