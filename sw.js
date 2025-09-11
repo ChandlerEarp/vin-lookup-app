@@ -1,4 +1,5 @@
-const CACHE_NAME = 'VIN-APP-V29-UNITPLATE-AUTOTYPE'; // bump when you change code or data
+const CACHE_NAME = 'VIN-APP-V30-FORCE-UPDATE'; // bump when you change code or data
+// Force update: V30 - trivial change for SW update
 const ASSETS = [
   './',
   './index.html',
