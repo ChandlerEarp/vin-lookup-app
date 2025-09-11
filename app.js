@@ -1,5 +1,5 @@
 // ===== Config =====
-const BUILD_VERSION = "v28-NO-UNIT-MSG"; // bump when you replace data.csv
+const BUILD_VERSION = "v31-PLATE-UNIT-SHOWALL"; // bump when you replace data.csv or code
 console.log('App.js loaded at:', new Date().toISOString());
 
 // Mobile detection
